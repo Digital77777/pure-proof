@@ -1,0 +1,17 @@
+{
+  "name": "Less — Your Visual CV",
+  "short_name": "Less",
+  "description": "Less noise. More proof. Your visual CV for the real world.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f8fa",
+  "theme_color": "#38b6e6",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
