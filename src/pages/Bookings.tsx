@@ -37,12 +37,16 @@ const Bookings = () => {
   const { data: received, isLoading: loadingReceived } = useQuery({
     queryKey: ["bookings-received", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: bookings } = await supabase
         .from("bookings")
-        .select("*, client:profiles!bookings_client_id_fkey(name, username)")
+        .select("*")
         .eq("creator_id", user!.id)
         .order("created_at", { ascending: false });
-      return data ?? [];
+      if (!bookings?.length) return [];
+      const clientIds = [...new Set(bookings.map(b => b.client_id))];
+      const { data: profiles } = await supabase.from("profiles").select("user_id, name, username").in("user_id", clientIds);
+      const profileMap = Object.fromEntries((profiles ?? []).map(p => [p.user_id, p]));
+      return bookings.map(b => ({ ...b, client: profileMap[b.client_id] ?? null }));
     },
     enabled: !!user,
   });
@@ -51,12 +55,16 @@ const Bookings = () => {
   const { data: sent, isLoading: loadingSent } = useQuery({
     queryKey: ["bookings-sent", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: bookings } = await supabase
         .from("bookings")
-        .select("*, creator:profiles!bookings_creator_id_fkey(name, username)")
+        .select("*")
         .eq("client_id", user!.id)
         .order("created_at", { ascending: false });
-      return data ?? [];
+      if (!bookings?.length) return [];
+      const creatorIds = [...new Set(bookings.map(b => b.creator_id))];
+      const { data: profiles } = await supabase.from("profiles").select("user_id, name, username").in("user_id", creatorIds);
+      const profileMap = Object.fromEntries((profiles ?? []).map(p => [p.user_id, p]));
+      return bookings.map(b => ({ ...b, creator: profileMap[b.creator_id] ?? null }));
     },
     enabled: !!user,
   });
