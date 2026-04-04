@@ -158,9 +158,14 @@ const ProfileEdit = () => {
         <Button variant="ghost" asChild>
           <Link to="/"><ArrowLeft className="h-4 w-4 mr-2" /> Back</Link>
         </Button>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving..." : "Save profile"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/bookings">Bookings</Link>
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Saving..." : "Save profile"}
+          </Button>
+        </div>
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 pb-20 space-y-8">
