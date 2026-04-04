@@ -1,60 +1,156 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Image, Video, Plus, X, ArrowLeft } from "lucide-react";
-import { useState } from "react";
-
-interface MediaSlot {
-  id: string;
-  type: "image" | "video";
-  url?: string;
-  file?: File;
-}
+import { Image, Video, Plus, X, ArrowLeft, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const ProfileEdit = () => {
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [title, setTitle] = useState("");
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
   const [contactLink, setContactLink] = useState("");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const [images, setImages] = useState<MediaSlot[]>(
-    Array.from({ length: 5 }, (_, i) => ({ id: `img-${i}`, type: "image" }))
-  );
-  const [videos, setVideos] = useState<MediaSlot[]>(
-    Array.from({ length: 5 }, (_, i) => ({ id: `vid-${i}`, type: "video" }))
-  );
+  useEffect(() => {
+    if (!authLoading && !user) navigate("/login");
+  }, [authLoading, user, navigate]);
 
-  const handleFileSelect = (
-    index: number,
-    type: "image" | "video",
-    file: File
-  ) => {
-    const url = URL.createObjectURL(file);
-    if (type === "image") {
-      setImages(prev => prev.map((slot, i) => i === index ? { ...slot, url, file } : slot));
+  // Fetch categories
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data } = await supabase.from("categories").select("*").order("name");
+      return data ?? [];
+    },
+  });
+
+  // Fetch profile
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch media
+  const { data: mediaItems } = useQuery({
+    queryKey: ["media", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase.from("media_items").select("*").eq("user_id", user.id).order("display_order");
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name ?? "");
+      setUsername(profile.username ?? "");
+      setTitle(profile.title ?? "");
+      setBio(profile.bio ?? "");
+      setLocation(profile.location ?? "");
+      setContactLink(profile.contact_link ?? "");
+      setCategoryId(profile.category_id ?? "");
+    }
+  }, [profile]);
+
+  const images = mediaItems?.filter(m => m.type === "image") ?? [];
+  const videos = mediaItems?.filter(m => m.type === "video") ?? [];
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        name,
+        username: username || null,
+        title,
+        bio,
+        location,
+        contact_link: contactLink,
+        category_id: categoryId || null,
+        is_published: true,
+      })
+      .eq("user_id", user.id);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
     } else {
-      setVideos(prev => prev.map((slot, i) => i === index ? { ...slot, url, file } : slot));
+      toast.success("Profile saved!");
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
     }
   };
 
-  const handleRemove = (index: number, type: "image" | "video") => {
-    if (type === "image") {
-      setImages(prev => prev.map((slot, i) => i === index ? { ...slot, url: undefined, file: undefined } : slot));
+  const handleUpload = async (file: File, type: "image" | "video") => {
+    if (!user) return;
+    const count = type === "image" ? images.length : videos.length;
+    if (count >= 5) {
+      toast.error(`Maximum 5 ${type}s allowed`);
+      return;
+    }
+
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/${type}-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
+    if (uploadError) {
+      toast.error(uploadError.message);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+
+    const { error: insertError } = await supabase.from("media_items").insert({
+      user_id: user.id,
+      type,
+      url: urlData.publicUrl,
+      storage_path: path,
+      display_order: count,
+    });
+
+    if (insertError) {
+      toast.error(insertError.message);
     } else {
-      setVideos(prev => prev.map((slot, i) => i === index ? { ...slot, url: undefined, file: undefined } : slot));
+      queryClient.invalidateQueries({ queryKey: ["media"] });
+      toast.success(`${type === "image" ? "Image" : "Video"} uploaded!`);
     }
   };
 
-  const handleSave = () => {
-    // Will connect to Supabase
+  const handleDelete = async (id: string, storagePath: string | null) => {
+    if (storagePath) {
+      await supabase.storage.from("media").remove([storagePath]);
+    }
+    await supabase.from("media_items").delete().eq("id", id);
+    queryClient.invalidateQueries({ queryKey: ["media"] });
+    toast.success("Removed");
   };
 
-  const categories = ["Artist", "Educator", "Coach", "Designer", "Tradesperson", "Consultant", "Creator", "Photographer", "Musician", "Developer"];
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,11 +158,12 @@ const ProfileEdit = () => {
         <Button variant="ghost" asChild>
           <Link to="/"><ArrowLeft className="h-4 w-4 mr-2" /> Back</Link>
         </Button>
-        <Button onClick={handleSave}>Save profile</Button>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : "Save profile"}
+        </Button>
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 pb-20 space-y-8">
-        {/* Profile Info */}
         <Card>
           <CardHeader>
             <CardTitle>Profile information</CardTitle>
@@ -78,9 +175,13 @@ const ProfileEdit = () => {
                 <Input id="name" placeholder="Your full name" value={name} onChange={e => setName(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="title">Title / Role</Label>
-                <Input id="title" placeholder="e.g. Photographer" value={title} onChange={e => setTitle(e.target.value)} />
+                <Label htmlFor="username">Username</Label>
+                <Input id="username" placeholder="your-username" value={username} onChange={e => setUsername(e.target.value)} />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="title">Title / Role</Label>
+              <Input id="title" placeholder="e.g. Photographer" value={title} onChange={e => setTitle(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>
@@ -99,18 +200,18 @@ const ProfileEdit = () => {
             <div className="space-y-2">
               <Label>Category</Label>
               <div className="flex flex-wrap gap-2">
-                {categories.map(cat => (
+                {categories?.map(cat => (
                   <button
-                    key={cat}
+                    key={cat.id}
                     type="button"
-                    onClick={() => setCategory(cat)}
+                    onClick={() => setCategoryId(cat.id)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      category === cat
+                      categoryId === cat.id
                         ? "bg-primary text-primary-foreground"
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
-                    {cat}
+                    {cat.name}
                   </button>
                 ))}
               </div>
@@ -123,37 +224,29 @@ const ProfileEdit = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Image className="h-5 w-5 text-primary" />
-              Images ({images.filter(s => s.url).length}/5)
+              Images ({images.length}/5)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              {images.map((slot, i) => (
-                <div key={slot.id} className="relative aspect-square rounded-xl border-2 border-dashed border-border bg-muted/50 overflow-hidden group">
-                  {slot.url ? (
-                    <>
-                      <img src={slot.url} alt="" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => handleRemove(i, "image")}
-                        className="absolute top-2 right-2 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-muted transition-colors">
-                      <Plus className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground mt-1">Image</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={e => e.target.files?.[0] && handleFileSelect(i, "image", e.target.files[0])}
-                      />
-                    </label>
-                  )}
+              {images.map(item => (
+                <div key={item.id} className="relative aspect-square rounded-xl border border-border overflow-hidden group">
+                  <img src={item.url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => handleDelete(item.id, item.storage_path)}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
               ))}
+              {images.length < 5 && (
+                <label className="aspect-square rounded-xl border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors">
+                  <Plus className="h-6 w-6 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground mt-1">Add image</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "image")} />
+                </label>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -163,37 +256,29 @@ const ProfileEdit = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Video className="h-5 w-5 text-primary" />
-              Videos ({videos.filter(s => s.url).length}/5)
+              Videos ({videos.length}/5)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              {videos.map((slot, i) => (
-                <div key={slot.id} className="relative aspect-square rounded-xl border-2 border-dashed border-border bg-muted/50 overflow-hidden group">
-                  {slot.url ? (
-                    <>
-                      <video src={slot.url} className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => handleRemove(i, "video")}
-                        className="absolute top-2 right-2 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-muted transition-colors">
-                      <Plus className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground mt-1">Video</span>
-                      <input
-                        type="file"
-                        accept="video/*"
-                        className="hidden"
-                        onChange={e => e.target.files?.[0] && handleFileSelect(i, "video", e.target.files[0])}
-                      />
-                    </label>
-                  )}
+              {videos.map(item => (
+                <div key={item.id} className="relative aspect-square rounded-xl border border-border overflow-hidden group">
+                  <video src={item.url} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => handleDelete(item.id, item.storage_path)}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
               ))}
+              {videos.length < 5 && (
+                <label className="aspect-square rounded-xl border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors">
+                  <Plus className="h-6 w-6 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground mt-1">Add video</span>
+                  <input type="file" accept="video/*" className="hidden" onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "video")} />
+                </label>
+              )}
             </div>
           </CardContent>
         </Card>
