@@ -14,7 +14,146 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          amount_cents: number
+          client_id: string
+          created_at: string
+          creator_id: string
+          description: string | null
+          fee_cents: number
+          id: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents?: number
+          client_id: string
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          fee_cents?: number
+          id?: string
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          client_id?: string
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          fee_cents?: number
+          id?: string
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      media_items: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          storage_path: string | null
+          type: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          storage_path?: string | null
+          type: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          storage_path?: string | null
+          type?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          bio: string | null
+          category_id: string | null
+          contact_link: string | null
+          created_at: string
+          id: string
+          is_published: boolean
+          location: string | null
+          name: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          bio?: string | null
+          category_id?: string | null
+          contact_link?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          location?: string | null
+          name?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          bio?: string | null
+          category_id?: string | null
+          contact_link?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          location?: string | null
+          name?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
