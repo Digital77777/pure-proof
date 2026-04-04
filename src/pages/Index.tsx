@@ -4,6 +4,8 @@ import { ArrowRight, Image, Video, Globe, Sparkles, Eye, HandshakeIcon } from "l
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
