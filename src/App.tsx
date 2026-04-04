@@ -10,6 +10,7 @@ import Signup from "./pages/Signup";
 import ProfileEdit from "./pages/ProfileEdit";
 import ProfileView from "./pages/ProfileView";
 import Discover from "./pages/Discover";
+import Bookings from "./pages/Bookings";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
@@ -28,7 +29,8 @@ const App = () => (
             <Route path="/signup" element={<Signup />} />
             <Route path="/profile/edit" element={<ProfileEdit />} />
             <Route path="/profile/:username" element={<ProfileView />} />
-            <Route path="/discover" element={<Discover />} />
+          <Route path="/bookings" element={<Bookings />} />
+          <Route path="/discover" element={<Discover />} />
             <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
