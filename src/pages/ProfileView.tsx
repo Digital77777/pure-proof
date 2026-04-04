@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Globe, ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import BookingDialog from "@/components/BookingDialog";
 
 const ProfileView = () => {
   const { username } = useParams();
@@ -84,7 +85,7 @@ const ProfileView = () => {
               {categoryName}
             </span>
           )}
-          <div className="flex items-center justify-center gap-3 mt-6">
+          <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
             {profile.contact_link && (
               <Button variant="outline" asChild>
                 <a href={profile.contact_link} target="_blank" rel="noopener noreferrer">
@@ -92,7 +93,18 @@ const ProfileView = () => {
                 </a>
               </Button>
             )}
-            <Button>Book Session</Button>
+            <BookingDialog
+              creatorId={profile.user_id}
+              creatorName={profile.name ?? "Creator"}
+              type="session"
+              trigger={<Button>Book Session</Button>}
+            />
+            <BookingDialog
+              creatorId={profile.user_id}
+              creatorName={profile.name ?? "Creator"}
+              type="commission"
+              trigger={<Button variant="secondary">Commission Work</Button>}
+            />
           </div>
         </div>
 

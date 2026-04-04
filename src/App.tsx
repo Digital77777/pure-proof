@@ -10,6 +10,7 @@ import Signup from "./pages/Signup";
 import ProfileEdit from "./pages/ProfileEdit";
 import ProfileView from "./pages/ProfileView";
 import Discover from "./pages/Discover";
+import Bookings from "./pages/Bookings";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
