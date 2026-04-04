@@ -1,8 +1,11 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Image, Video, Globe, Sparkles, Eye, HandshakeIcon } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
@@ -12,12 +15,25 @@ const Index = () => {
           <span className="text-xl font-semibold text-foreground">Less</span>
         </Link>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" asChild>
-            <Link to="/login">Log in</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/signup">Sign up</Link>
-          </Button>
+          {user ? (
+            <>
+              <Button variant="ghost" asChild>
+                <Link to="/discover">Discover</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/profile/edit">My Profile</Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link to="/login">Log in</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/signup">Sign up</Link>
+              </Button>
+            </>
+          )}
         </div>
       </nav>
 
