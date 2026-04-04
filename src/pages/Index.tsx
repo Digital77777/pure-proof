@@ -15,12 +15,25 @@ const Index = () => {
           <span className="text-xl font-semibold text-foreground">Less</span>
         </Link>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" asChild>
-            <Link to="/login">Log in</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/signup">Sign up</Link>
-          </Button>
+          {user ? (
+            <>
+              <Button variant="ghost" asChild>
+                <Link to="/discover">Discover</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/profile/edit">My Profile</Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link to="/login">Log in</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/signup">Sign up</Link>
+              </Button>
+            </>
+          )}
         </div>
       </nav>
 
