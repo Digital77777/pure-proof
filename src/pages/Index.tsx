@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Image, Video, Globe, Sparkles, Eye, HandshakeIcon } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   return (
