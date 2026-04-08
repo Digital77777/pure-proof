@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Image, Video, Plus, X, ArrowLeft, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -100,6 +100,16 @@ const ProfileEdit = () => {
     }
   };
 
+  const [uploading, setUploading] = useState<string | null>(null);
+
+  const MAX_IMAGE_SIZE = 50 * 1024 * 1024; // 50MB
+  const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   const handleUpload = async (file: File, type: "image" | "video") => {
     if (!user) return;
     const count = type === "image" ? images.length : videos.length;
@@ -108,12 +118,24 @@ const ProfileEdit = () => {
       return;
     }
 
+    const maxSize = type === "image" ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
+    if (file.size > maxSize) {
+      toast.error(`File too large (${formatSize(file.size)}). Max ${type === "image" ? "50 MB" : "500 MB"}.`);
+      return;
+    }
+
+    setUploading(type);
     const ext = file.name.split(".").pop();
     const path = `${user.id}/${type}-${Date.now()}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
+    const { error: uploadError } = await supabase.storage.from("media").upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+
     if (uploadError) {
       toast.error(uploadError.message);
+      setUploading(null);
       return;
     }
 
@@ -127,11 +149,12 @@ const ProfileEdit = () => {
       display_order: count,
     });
 
+    setUploading(null);
     if (insertError) {
       toast.error(insertError.message);
     } else {
       queryClient.invalidateQueries({ queryKey: ["media"] });
-      toast.success(`${type === "image" ? "Image" : "Video"} uploaded!`);
+      toast.success(`${type === "image" ? "Image" : "Video"} uploaded in HD!`);
     }
   };
 
@@ -247,9 +270,16 @@ const ProfileEdit = () => {
               ))}
               {images.length < 5 && (
                 <label className="aspect-square rounded-xl border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors">
-                  <Plus className="h-6 w-6 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground mt-1">Add image</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "image")} />
+                  {uploading === "image" ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  ) : (
+                    <>
+                      <Plus className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground mt-1">Add image</span>
+                      <span className="text-[10px] text-muted-foreground">up to 50 MB</span>
+                    </>
+                  )}
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/gif" className="hidden" disabled={uploading === "image"} onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "image")} />
                 </label>
               )}
             </div>
@@ -279,9 +309,16 @@ const ProfileEdit = () => {
               ))}
               {videos.length < 5 && (
                 <label className="aspect-square rounded-xl border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors">
-                  <Plus className="h-6 w-6 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground mt-1">Add video</span>
-                  <input type="file" accept="video/*" className="hidden" onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "video")} />
+                  {uploading === "video" ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  ) : (
+                    <>
+                      <Plus className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground mt-1">Add video</span>
+                      <span className="text-[10px] text-muted-foreground">up to 500 MB</span>
+                    </>
+                  )}
+                  <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska" className="hidden" disabled={uploading === "video"} onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "video")} />
                 </label>
               )}
             </div>
