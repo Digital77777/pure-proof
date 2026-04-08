@@ -100,6 +100,16 @@ const ProfileEdit = () => {
     }
   };
 
+  const [uploading, setUploading] = useState<string | null>(null);
+
+  const MAX_IMAGE_SIZE = 50 * 1024 * 1024; // 50MB
+  const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   const handleUpload = async (file: File, type: "image" | "video") => {
     if (!user) return;
     const count = type === "image" ? images.length : videos.length;
@@ -108,12 +118,24 @@ const ProfileEdit = () => {
       return;
     }
 
+    const maxSize = type === "image" ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
+    if (file.size > maxSize) {
+      toast.error(`File too large (${formatSize(file.size)}). Max ${type === "image" ? "50 MB" : "500 MB"}.`);
+      return;
+    }
+
+    setUploading(type);
     const ext = file.name.split(".").pop();
     const path = `${user.id}/${type}-${Date.now()}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
+    const { error: uploadError } = await supabase.storage.from("media").upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+
     if (uploadError) {
       toast.error(uploadError.message);
+      setUploading(null);
       return;
     }
 
@@ -127,11 +149,12 @@ const ProfileEdit = () => {
       display_order: count,
     });
 
+    setUploading(null);
     if (insertError) {
       toast.error(insertError.message);
     } else {
       queryClient.invalidateQueries({ queryKey: ["media"] });
-      toast.success(`${type === "image" ? "Image" : "Video"} uploaded!`);
+      toast.success(`${type === "image" ? "Image" : "Video"} uploaded in HD!`);
     }
   };
 
