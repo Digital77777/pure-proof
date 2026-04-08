@@ -270,9 +270,16 @@ const ProfileEdit = () => {
               ))}
               {images.length < 5 && (
                 <label className="aspect-square rounded-xl border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors">
-                  <Plus className="h-6 w-6 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground mt-1">Add image</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "image")} />
+                  {uploading === "image" ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  ) : (
+                    <>
+                      <Plus className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground mt-1">Add image</span>
+                      <span className="text-[10px] text-muted-foreground">up to 50 MB</span>
+                    </>
+                  )}
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/gif" className="hidden" disabled={uploading === "image"} onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "image")} />
                 </label>
               )}
             </div>
@@ -302,9 +309,16 @@ const ProfileEdit = () => {
               ))}
               {videos.length < 5 && (
                 <label className="aspect-square rounded-xl border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors">
-                  <Plus className="h-6 w-6 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground mt-1">Add video</span>
-                  <input type="file" accept="video/*" className="hidden" onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "video")} />
+                  {uploading === "video" ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  ) : (
+                    <>
+                      <Plus className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground mt-1">Add video</span>
+                      <span className="text-[10px] text-muted-foreground">up to 500 MB</span>
+                    </>
+                  )}
+                  <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska" className="hidden" disabled={uploading === "video"} onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "video")} />
                 </label>
               )}
             </div>
