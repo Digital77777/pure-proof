@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Image, Video, Plus, X, ArrowLeft, Loader2, LogOut } from "lucide-react";
+import { Image, Video, Plus, X, ArrowLeft, Loader2, LogOut, Camera } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +24,8 @@ const ProfileEdit = () => {
   const [contactLink, setContactLink] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
@@ -69,6 +71,7 @@ const ProfileEdit = () => {
       setLocation(profile.location ?? "");
       setContactLink(profile.contact_link ?? "");
       setCategoryId(profile.category_id ?? "");
+      setAvatarUrl((profile as any).avatar_url ?? "");
     }
   }, [profile]);
 
