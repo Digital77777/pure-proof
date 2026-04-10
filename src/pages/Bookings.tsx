@@ -153,6 +153,19 @@ const Bookings = () => {
               </Button>
             </div>
           )}
+          {perspective === "client" && (booking.status === "accepted" || booking.status === "completed") && booking.creator?.contact_link && (
+            <div className="mt-4 pt-3 border-t border-border">
+              <p className="text-xs text-muted-foreground mb-1">Creator contact</p>
+              <a
+                href={booking.creator.contact_link.startsWith("http") ? booking.creator.contact_link : `https://${booking.creator.contact_link}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline font-medium break-all"
+              >
+                {booking.creator.contact_link}
+              </a>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
