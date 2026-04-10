@@ -78,6 +78,40 @@ const ProfileEdit = () => {
   const images = mediaItems?.filter(m => m.type === "image") ?? [];
   const videos = mediaItems?.filter(m => m.type === "video") ?? [];
 
+  const handleAvatarUpload = async (file: File) => {
+    if (!user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Avatar must be under 5 MB");
+      return;
+    }
+    setUploadingAvatar(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/avatar.${ext}`;
+
+    await supabase.storage.from("avatars").remove([path]);
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
+      cacheControl: "3600",
+      upsert: true,
+    });
+    if (uploadError) {
+      toast.error(uploadError.message);
+      setUploadingAvatar(false);
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const newUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    const { error } = await supabase.from("profiles").update({ avatar_url: newUrl } as any).eq("user_id", user.id);
+    setUploadingAvatar(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setAvatarUrl(newUrl);
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      toast.success("Avatar updated!");
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
@@ -91,8 +125,9 @@ const ProfileEdit = () => {
         location,
         contact_link: contactLink,
         category_id: categoryId || null,
+        avatar_url: avatarUrl || null,
         is_published: true,
-      })
+      } as any)
       .eq("user_id", user.id);
     setSaving(false);
     if (error) {
