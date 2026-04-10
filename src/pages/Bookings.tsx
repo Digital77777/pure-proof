@@ -62,7 +62,7 @@ const Bookings = () => {
         .order("created_at", { ascending: false });
       if (!bookings?.length) return [];
       const creatorIds = [...new Set(bookings.map(b => b.creator_id))];
-      const { data: profiles } = await supabase.from("profiles").select("user_id, name, username").in("user_id", creatorIds);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, name, username, contact_link").in("user_id", creatorIds);
       const profileMap = Object.fromEntries((profiles ?? []).map(p => [p.user_id, p]));
       return bookings.map(b => ({ ...b, creator: profileMap[b.creator_id] ?? null }));
     },
