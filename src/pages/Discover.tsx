@@ -107,8 +107,14 @@ const Discover = () => {
                 to={`/profile/${profile.username ?? profile.id}`}
                 className="group block rounded-2xl border border-border bg-card p-6 text-center hover:shadow-md transition-shadow"
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary text-xl font-bold mb-4 group-hover:scale-105 transition-transform">
-                  {(profile.name ?? "?").charAt(0).toUpperCase()}
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 overflow-hidden mb-4 group-hover:scale-105 transition-transform">
+                  {(profile as any).avatar_url ? (
+                    <img src={(profile as any).avatar_url} alt={profile.name ?? ""} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xl font-bold text-primary">
+                      {(profile.name ?? "?").charAt(0).toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 <h3 className="font-semibold text-foreground">{profile.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{profile.title}</p>

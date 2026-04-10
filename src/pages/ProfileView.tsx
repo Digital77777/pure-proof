@@ -96,8 +96,14 @@ const ProfileView = () => {
 
       <div className="max-w-4xl mx-auto px-6 pb-20">
         <div className="text-center py-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 text-primary text-2xl font-bold mb-4">
-            {(profile.name ?? "?").charAt(0).toUpperCase()}
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 overflow-hidden mb-4">
+            {(profile as any).avatar_url ? (
+              <img src={(profile as any).avatar_url} alt={profile.name ?? ""} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-2xl font-bold text-primary">
+                {(profile.name ?? "?").charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           <h1 className="text-3xl font-bold text-foreground">{profile.name}</h1>
           {profile.title && <p className="text-lg text-primary font-medium mt-1">{profile.title}</p>}
