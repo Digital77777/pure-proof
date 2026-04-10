@@ -237,7 +237,38 @@ const ProfileEdit = () => {
           <CardHeader>
             <CardTitle>Profile information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* Avatar */}
+            <div className="flex items-center gap-4">
+              <label className="relative cursor-pointer group">
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+                  {uploadingAvatar ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  ) : avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl font-bold text-primary">
+                      {(name || "?").charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera className="h-5 w-5 text-white" />
+                </div>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  disabled={uploadingAvatar}
+                  onChange={e => e.target.files?.[0] && handleAvatarUpload(e.target.files[0])}
+                />
+              </label>
+              <div>
+                <p className="text-sm font-medium text-foreground">Profile photo</p>
+                <p className="text-xs text-muted-foreground">Click to upload · JPG, PNG, WebP · Max 5 MB</p>
+              </div>
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
