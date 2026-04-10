@@ -62,7 +62,7 @@ const Bookings = () => {
         .order("created_at", { ascending: false });
       if (!bookings?.length) return [];
       const creatorIds = [...new Set(bookings.map(b => b.creator_id))];
-      const { data: profiles } = await supabase.from("profiles").select("user_id, name, username").in("user_id", creatorIds);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, name, username, contact_link").in("user_id", creatorIds);
       const profileMap = Object.fromEntries((profiles ?? []).map(p => [p.user_id, p]));
       return bookings.map(b => ({ ...b, creator: profileMap[b.creator_id] ?? null }));
     },
@@ -151,6 +151,19 @@ const Bookings = () => {
               <Button size="sm" onClick={() => updateStatus(booking.id, "completed")}>
                 Mark Complete
               </Button>
+            </div>
+          )}
+          {perspective === "client" && (booking.status === "accepted" || booking.status === "completed") && booking.creator?.contact_link && (
+            <div className="mt-4 pt-3 border-t border-border">
+              <p className="text-xs text-muted-foreground mb-1">Creator contact</p>
+              <a
+                href={booking.creator.contact_link.startsWith("http") ? booking.creator.contact_link : `https://${booking.creator.contact_link}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline font-medium break-all"
+              >
+                {booking.creator.contact_link}
+              </a>
             </div>
           )}
         </CardContent>
