@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Image, Video, Plus, X, ArrowLeft, Loader2 } from "lucide-react";
+import { Image, Video, Plus, X, ArrowLeft, Loader2, LogOut } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const ProfileEdit = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -188,6 +188,9 @@ const ProfileEdit = () => {
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Saving..." : "Save profile"}
           </Button>
+          <Button variant="ghost" size="icon" onClick={async () => { await signOut(); navigate("/"); }} title="Sign out">
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
       </nav>
 
@@ -262,7 +265,7 @@ const ProfileEdit = () => {
                   <img src={item.url} alt="" className="w-full h-full object-cover" />
                   <button
                     onClick={() => handleDelete(item.id, item.storage_path)}
-                    className="absolute top-2 right-2 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive text-destructive-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -301,7 +304,7 @@ const ProfileEdit = () => {
                   <video src={item.url} className="w-full h-full object-cover" />
                   <button
                     onClick={() => handleDelete(item.id, item.storage_path)}
-                    className="absolute top-2 right-2 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive text-destructive-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                   >
                     <X className="h-3 w-3" />
                   </button>

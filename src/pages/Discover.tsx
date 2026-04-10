@@ -12,6 +12,7 @@ const categoryFilters = ["All", "Artist", "Educator", "Coach", "Designer", "Trad
 const Discover = () => {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  document.title = "Discover Talent — Less";
   const { user } = useAuth();
 
   const { data: categories } = useQuery({
@@ -28,7 +29,8 @@ const Discover = () => {
       let query = supabase
         .from("profiles")
         .select("*, categories(name)")
-        .eq("is_published", true);
+        .eq("is_published", true)
+        .not("username", "is", null);
 
       if (activeCategory !== "All") {
         const cat = categories?.find(c => c.name === activeCategory);
