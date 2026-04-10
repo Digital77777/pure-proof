@@ -6,6 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 const Index = () => {
   const { user } = useAuth();
 
+  document.title = "Less — Your Visual CV for the Real World";
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
