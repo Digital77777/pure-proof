@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Play } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -46,6 +46,29 @@ const Discover = () => {
     },
     enabled: !!categories,
   });
+
+  // Fetch media previews for all visible profiles
+  const profileUserIds = profiles?.map(p => p.user_id) ?? [];
+  const { data: allMedia } = useQuery({
+    queryKey: ["discover-media", profileUserIds],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("media_items")
+        .select("*")
+        .in("user_id", profileUserIds)
+        .order("display_order")
+        .limit(200);
+      return data ?? [];
+    },
+    enabled: profileUserIds.length > 0,
+  });
+
+  // Group media by user_id
+  const mediaByUser = (allMedia ?? []).reduce<Record<string, typeof allMedia>>((acc, item) => {
+    if (!acc[item.user_id]) acc[item.user_id] = [];
+    acc[item.user_id]!.push(item);
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-background">
@@ -101,30 +124,64 @@ const Discover = () => {
           </div>
         ) : profiles && profiles.length > 0 ? (
           <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {profiles.map(profile => (
-              <Link
-                key={profile.id}
-                to={`/profile/${profile.username ?? profile.id}`}
-                className="group block rounded-2xl border border-border bg-card p-6 text-center hover:shadow-md transition-shadow"
-              >
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 overflow-hidden mb-4 group-hover:scale-105 transition-transform">
-                  {(profile as any).avatar_url ? (
-                    <img src={(profile as any).avatar_url} alt={profile.name ?? ""} className="w-full h-full object-cover" />
+            {profiles.map(profile => {
+              const userMedia = mediaByUser[profile.user_id] ?? [];
+              const previewImage = userMedia.find(m => m.type === "image");
+              const previewVideo = userMedia.find(m => m.type === "video");
+              const preview = previewImage || previewVideo;
+
+              return (
+                <Link
+                  key={profile.id}
+                  to={`/profile/${profile.username ?? profile.id}`}
+                  className="group block rounded-2xl border border-border bg-card overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  {/* Media preview */}
+                  {preview ? (
+                    <div className="aspect-[4/3] overflow-hidden relative">
+                      {preview.type === "image" ? (
+                        <img src={preview.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                      ) : (
+                        <>
+                          <video src={preview.url} className="w-full h-full object-cover" muted preload="metadata" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <Play className="h-6 w-6 text-white fill-white" />
+                          </div>
+                        </>
+                      )}
+                    </div>
                   ) : (
-                    <span className="text-xl font-bold text-primary">
-                      {(profile.name ?? "?").charAt(0).toUpperCase()}
-                    </span>
+                    <div className="aspect-[4/3] bg-muted flex items-center justify-center">
+                      <span className="text-3xl font-bold text-muted-foreground/40">
+                        {(profile.name ?? "?").charAt(0).toUpperCase()}
+                      </span>
+                    </div>
                   )}
-                </div>
-                <h3 className="font-semibold text-foreground">{profile.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{profile.title}</p>
-                {(profile as any).categories?.name && (
-                  <span className="inline-block mt-3 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                    {(profile as any).categories.name}
-                  </span>
-                )}
-              </Link>
-            ))}
+
+                  {/* Info */}
+                  <div className="p-4 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 overflow-hidden flex-shrink-0">
+                        {(profile as any).avatar_url ? (
+                          <img src={(profile as any).avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="flex items-center justify-center h-full text-[10px] font-bold text-primary">
+                            {(profile.name ?? "?").charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-foreground text-sm truncate">{profile.name}</h3>
+                    </div>
+                    {profile.title && <p className="text-xs text-muted-foreground truncate">{profile.title}</p>}
+                    {(profile as any).categories?.name && (
+                      <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
+                        {(profile as any).categories.name}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-20 text-muted-foreground">
