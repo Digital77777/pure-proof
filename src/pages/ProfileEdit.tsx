@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Image, Video, Plus, X, ArrowLeft, Loader2, LogOut, Camera } from "lucide-react";
+import { Image, Video, ArrowLeft, Loader2, LogOut, Camera } from "lucide-react";
+import DraggableMediaGrid from "@/components/DraggableMediaGrid";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -205,6 +206,28 @@ const ProfileEdit = () => {
     toast.success("Removed");
   };
 
+  const handleReorder = async (reorderedIds: string[]) => {
+    // Optimistically update cache
+    queryClient.setQueryData(["media", user?.id], (old: any[] | undefined) => {
+      if (!old) return old;
+      const map = new Map(old.map(item => [item.id, item]));
+      return reorderedIds
+        .map((id, i) => {
+          const item = map.get(id);
+          return item ? { ...item, display_order: i } : null;
+        })
+        .filter(Boolean)
+        .concat(old.filter(item => !reorderedIds.includes(item.id)));
+    });
+
+    // Persist new order
+    const updates = reorderedIds.map((id, index) =>
+      supabase.from("media_items").update({ display_order: index }).eq("id", id)
+    );
+    await Promise.all(updates);
+    queryClient.invalidateQueries({ queryKey: ["media"] });
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -328,33 +351,17 @@ const ProfileEdit = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              {images.map(item => (
-                <div key={item.id} className="relative aspect-square rounded-xl border border-border overflow-hidden group">
-                  <img src={item.url} alt="" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => handleDelete(item.id, item.storage_path)}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive text-destructive-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              {images.length < 5 && (
-                <label className="aspect-square rounded-xl border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors">
-                  {uploading === "image" ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  ) : (
-                    <>
-                      <Plus className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground mt-1">Add image</span>
-                      <span className="text-[10px] text-muted-foreground">up to 50 MB</span>
-                    </>
-                  )}
-                  <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/gif" className="hidden" disabled={uploading === "image"} onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "image")} />
-                </label>
-              )}
-            </div>
+            <DraggableMediaGrid
+              items={images}
+              type="image"
+              maxItems={5}
+              maxSizeLabel="up to 50 MB"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/gif"
+              uploading={uploading === "image"}
+              onUpload={(file) => handleUpload(file, "image")}
+              onDelete={handleDelete}
+              onReorder={handleReorder}
+            />
           </CardContent>
         </Card>
 
@@ -367,33 +374,17 @@ const ProfileEdit = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              {videos.map(item => (
-                <div key={item.id} className="relative aspect-square rounded-xl border border-border overflow-hidden group">
-                  <video src={item.url} className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => handleDelete(item.id, item.storage_path)}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive text-destructive-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              {videos.length < 5 && (
-                <label className="aspect-square rounded-xl border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors">
-                  {uploading === "video" ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  ) : (
-                    <>
-                      <Plus className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground mt-1">Add video</span>
-                      <span className="text-[10px] text-muted-foreground">up to 500 MB</span>
-                    </>
-                  )}
-                  <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska" className="hidden" disabled={uploading === "video"} onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0], "video")} />
-                </label>
-              )}
-            </div>
+            <DraggableMediaGrid
+              items={videos}
+              type="video"
+              maxItems={5}
+              maxSizeLabel="up to 500 MB"
+              accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska"
+              uploading={uploading === "video"}
+              onUpload={(file) => handleUpload(file, "video")}
+              onDelete={handleDelete}
+              onReorder={handleReorder}
+            />
           </CardContent>
         </Card>
       </div>
